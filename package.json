@@ -1,0 +1,15 @@
+{
+	"name": "heart-rate-monitor",
+	"version": "0.0.1",
+	"description": "A web based heart rate monitor that measures pulse from the fingertip using the phone camera.",
+	"main": "src/main.js",
+	"repository": "https://github.com/richrd/heart-rate-monitor",
+	"author": "Richard Lewis",
+	"license": "MIT",
+	"scripts": {
+		"lint": "prettier --write src/*.html src/*.css src/*.js *.json *.md"
+	},
+	"devDependencies": {
+		"prettier": "^2.2.1"
+	}
+}

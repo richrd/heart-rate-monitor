@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="stylesheet" type="text/css" href="style.css" />
+		<title>Heart Rate Monitor</title>
+	</head>
+	<body>
+		<div id="app">
+			<header>
+				<div>
+					<h1>Heart Rate Monitor</h1>
+					<small>Tap the circle to start / stop</small>
+				</div>
+			</header>
+
+			<main>
+				<section id="bpm-display-container" role="button">
+					<div id="bpm-display">
+						<div id="bpm-value"></div>
+						<label>bpm</label>
+					</div>
+				</section>
+
+				<secton id="graph-container">
+					<canvas id="graph-canvas"></canvas>
+				</secton>
+			</main>
+
+			<footer>
+				<!-- TODO: help button for instructions and maybe also some user options -->
+				<nav></nav>
+			</footer>
+
+			<div class="debug-view">
+				<div class="feeds">
+					<video id="camera-feed" controls="true"></video>
+					<canvas
+						id="sampling-canvas"
+						width="400"
+						height="400"
+					></canvas>
+				</div>
+			</div>
+		</div>
+
+		<script src="main.js"></script>
+	</body>
+</html>
