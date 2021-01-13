@@ -2,6 +2,8 @@
 
 A web based heart rate monitor that measures pulse from the fingertip using the phone camera. It works the same way as many camera based heart rate monitor apps, but it works entirely in the browser so nothing needs to be installed on your phone. At the moment it's recomended to use it on Chrome since other browsers don't yet support turning on the torch.
 
+### [Try the app here](https://heartrate.netlify.app)
+
 The latest stable version is hosted at [heartrate.netlify.app](https://heartrate.netlify.app)
 
 ![Heart Rate Monitor Screenshot](https://raw.githubusercontent.com/richrd/heart-rate-monitor/master/screenshots/screenshot-1.png)
