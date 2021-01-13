@@ -1,64 +1,92 @@
-(function () {
-	// Element that displays the measured heart rate
-	const BPM_ELEMENT = document.getElementById("bpm-value");
-
-	// The <video> element for streaming the webcam feed into
-	const VIDEO_ELEMENT = document.getElementById("camera-feed");
-
-	// Canvas element for sampling image data from the video stream
-	const SAMPLING_CANVAS = document.getElementById("sampling-canvas");
-
-	// Sampling canvas 2d context
-	const SAMPLING_CONTEXT = SAMPLING_CANVAS.getContext("2d");
-
-	// Canvas element for the graph
-	const GRAPH_CANVAS = document.getElementById("graph-canvas");
-
-	// Graph canvas 2d context
-	const GRAPH_CONTEXT = GRAPH_CANVAS.getContext("2d");
-
-	// Color of the graph line
-	let GRAPH_COLOR;
-
+const heartRateMonitor = (function () {
 	// Size of sampling image
 	const IMAGE_WIDTH = 30;
 	const IMAGE_HEIGHT = 30;
 
+	// Array of measured samples
 	const SAMPLE_BUFFER = [];
-	const MAX_SAMPLES = 60 * 5; // 5 seconds of samples (at 60 samples per second)
 
-	let MONITORING = false;
+	// Max 5 seconds of samples (at 60 samples per second)
+	// Measurement isn't dependant on frame rate but the visual speed of the graph is
+	const MAX_SAMPLES = 60 * 5;
+
+	// How long to wait in milliseconds for the camera image to stabilize before starting measurement
+	const START_DELAY = 1500;
+
+	// Callback for reporting the measured heart rate
+	let ON_BPM_CHANGE;
+
+	// The <video> element for streaming the camera feed into
+	let VIDEO_ELEMENT;
+
+	// Canvas element for sampling image data from the video stream
+	let SAMPLING_CANVAS;
+
+	// Sampling canvas 2d context
+	let SAMPLING_CONTEXT;
+
+	// Canvas element for the graph
+	let GRAPH_CANVAS;
+
+	// Graph canvas 2d context
+	let GRAPH_CONTEXT;
+
+	// Color of the graph line
+	let GRAPH_COLOR;
+
+	// Width of the graph line
+	let GRAPH_WIDTH;
+
+	// Whether to print debug messages
+	let DEBUG = false;
+
+	// Video stream object
 	let VIDEO_STREAM;
 
-	/*
-	 * Functions for obtaining a sample from image pixel data
-	 */
-	const samplers = {
-		basicAvgLightness(canvas, context) {
-			// Simple average of all r g b values
-			// 1d array of r, g, b, a pixel data values
-			const pixelData = context.getImageData(
-				0,
-				0,
-				canvas.width,
-				canvas.height
-			).data;
-			let sum = 0;
+	let MONITORING = false;
 
-			// Sum all the RGB pixel channels and skip the alpha channel
-			for (let i = 0; i < pixelData.length; i += 4) {
-				sum = sum + pixelData[i] + pixelData[i + 1] + pixelData[i + 2];
-			}
-			// Since we don't process the alpha channel we scale the data length acordingly
-			// 0.75 == 3/4
-			const avg = sum / (pixelData.length * 0.75);
-			// Scale to 0 ... 1
-			return avg / 255;
-		},
+	// Debug logging
+	const log = (...args) => {
+		if (DEBUG) {
+			console.log(...args);
+		}
 	};
 
-	const initialize = () => {
-		resetBuffer();
+	// Publicly available methods & variables
+	const public = {};
+
+	// Get an average brightness reading
+	const averageBrightness = (canvas, context) => {
+		// 1d array of r, g, b, a pixel data values
+		const pixelData = context.getImageData(
+			0,
+			0,
+			canvas.width,
+			canvas.height
+		).data;
+		let sum = 0;
+
+		// Only use the red and green channels as that combination gives the best readings
+		for (let i = 0; i < pixelData.length; i += 4) {
+			sum = sum + pixelData[i] + pixelData[i + 1];
+		}
+
+		// Since we only process two channels out of four we scale the data length to half
+		const avg = sum / (pixelData.length * 0.5);
+
+		// Scale to 0 ... 1
+		return avg / 255;
+	};
+
+	public.initialize = (configuration) => {
+		VIDEO_ELEMENT = configuration.videoElement;
+		SAMPLING_CANVAS = configuration.samplingCanvas;
+		GRAPH_CANVAS = configuration.graphCanvas;
+		GRAPH_COLOR = configuration.graphColor;
+		GRAPH_WIDTH = configuration.graphWidth;
+		ON_BPM_CHANGE = configuration.onBpmChange;
+		SAMPLING_CONTEXT = SAMPLING_CANVAS.getContext("2d");
+		GRAPH_CONTEXT = GRAPH_CANVAS.getContext("2d");
 
 		if (!"mediaDevices" in navigator) {
 			// TODO: use something nicer than an alert
@@ -68,54 +96,65 @@
 			return false;
 		}
 
-		// Setup variables
-		GRAPH_COLOR = getComputedStyle(
-			document.documentElement
-		).getPropertyValue("--graph-color");
-
 		// Setup event listeners
 		window.addEventListener("resize", handleResize);
-		document
-			.getElementById("bpm-display-container")
-			.addEventListener("click", toggleMonitoring);
 
 		// Set the canvas size to its element size
 		handleResize();
 	};
 
 	const handleResize = () => {
-		console.log("handleResize");
+		log(
+			"handleResize",
+			GRAPH_CANVAS.clientWidth,
+			GRAPH_CANVAS.clientHeight
+		);
 		GRAPH_CANVAS.width = GRAPH_CANVAS.clientWidth;
 		GRAPH_CANVAS.height = GRAPH_CANVAS.clientHeight;
 	};
 
-	const toggleMonitoring = async () => {
+	public.toggleMonitoring = () => {
 		MONITORING ? stopMonitoring() : startMonitoring();
 	};
 
-	const startMonitoring = async () => {
-		resetBuffer();
-
+	const getCamera = async () => {
 		const devices = await navigator.mediaDevices.enumerateDevices();
 		const cameras = devices.filter(
 			(device) => device.kind === "videoinput"
 		);
-		const camera = cameras[cameras.length - 1];
+		return cameras[cameras.length - 1];
+	};
+
+	const startMonitoring = async () => {
+		resetBuffer();
+		handleResize();
+		setBpmDisplay("");
+
+		const camera = await getCamera();
 		VIDEO_STREAM = await startCameraStream(camera);
 
 		if (!VIDEO_STREAM) {
-			return;
+			throw Error("Unable to start video stream");
 		}
 
-		setTorchStatus(VIDEO_STREAM, true);
+		try {
+			setTorchStatus(VIDEO_STREAM, true);
+		} catch (e) {
+			alert("Error:" + e);
+		}
+
 		SAMPLING_CANVAS.width = IMAGE_WIDTH;
 		SAMPLING_CANVAS.height = IMAGE_HEIGHT;
 		VIDEO_ELEMENT.srcObject = VIDEO_STREAM;
 		VIDEO_ELEMENT.play();
 		MONITORING = true;
 
-		// Short timeout helps stabilaze the camera image before taking samples
-		setTimeout(monitorLoop, 50);
+		// Waiting helps stabilaze the camera image before taking samples
+		log("Waiting before starting mainloop...");
+		setTimeout(async () => {
+			log("Starting mainloop...");
+			monitorLoop();
+		}, START_DELAY);
 	};
 
 	const stopMonitoring = async () => {
@@ -146,6 +185,11 @@
 					facingMode: ["user", "environment"],
 					width: { ideal: IMAGE_WIDTH },
 					height: { ideal: IMAGE_HEIGHT },
+
+					// Experimental:
+					whiteBalanceMode: "manual",
+					exposureMode: "manual",
+					focusMode: "manual",
 				},
 			});
 		} catch (error) {
@@ -156,16 +200,20 @@
 		return stream;
 	};
 
-	const setTorchStatus = (stream, status) => {
+	const setTorchStatus = async (stream, status) => {
 		// Try to enable flashlight
 		try {
 			const track = stream.getVideoTracks()[0];
-			track.applyConstraints({
+			await track.applyConstraints({
 				advanced: [{ torch: status }],
 			});
 		} catch (error) {
 			alert("Starting torch failed.\nError: " + error.message);
 		}
+	};
+
+	const setBpmDisplay = (bpm) => {
+		ON_BPM_CHANGE(bpm);
 	};
 
 	const processFrame = () => {
@@ -179,10 +227,7 @@
 		);
 
 		// Get a sample from the canvas pixels
-		const value = samplers.basicAvgLightness(
-			SAMPLING_CANVAS,
-			SAMPLING_CONTEXT
-		);
+		const value = averageBrightness(SAMPLING_CANVAS, SAMPLING_CONTEXT);
 		const time = Date.now();
 
 		SAMPLE_BUFFER.push({ value, time });
@@ -195,7 +240,7 @@
 
 		// TODO: Store BPM values in array and display moving average
 		if (bpm) {
-			BPM_ELEMENT.innerText = Math.round(bpm);
+			setBpmDisplay(Math.round(bpm));
 		}
 		drawGraph(dataStats);
 	};
@@ -266,47 +311,44 @@
 	};
 
 	const drawGraph = (dataStats) => {
-		const samples = SAMPLE_BUFFER;
-		const maxSamples = MAX_SAMPLES;
-		const ctx = GRAPH_CONTEXT;
-		const canvas = GRAPH_CANVAS;
-		const color = GRAPH_COLOR;
-		const lineWidth = 6;
-
 		// Scaling of sample window to the graph width
-		const xScaling = canvas.width / maxSamples;
+		const xScaling = GRAPH_CANVAS.width / MAX_SAMPLES;
+
 		// Set offset based on number of samples, so the graph runs from the right edge to the left
-		const xOffset = (maxSamples - samples.length) * xScaling;
+		const xOffset = (MAX_SAMPLES - SAMPLE_BUFFER.length) * xScaling;
 
-		ctx.lineWidth = lineWidth;
-		ctx.strokeStyle = color;
-		ctx.lineCap = "round";
-		ctx.lineJoin = "round";
+		GRAPH_CONTEXT.lineWidth = GRAPH_WIDTH;
+		GRAPH_CONTEXT.strokeStyle = GRAPH_COLOR;
+		GRAPH_CONTEXT.lineCap = "round";
+		GRAPH_CONTEXT.lineJoin = "round";
 
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		ctx.beginPath();
+		GRAPH_CONTEXT.clearRect(0, 0, GRAPH_CANVAS.width, GRAPH_CANVAS.height);
+		GRAPH_CONTEXT.beginPath();
 
 		// Avoid drawing too close to the graph edges due to the line thickness getting cut off
-		const maxHeight = GRAPH_CANVAS.height - ctx.lineWidth * 2;
+		const maxHeight = GRAPH_CANVAS.height - GRAPH_CONTEXT.lineWidth * 2;
 		let previousY = 0;
-		samples.forEach((sample, i) => {
+		SAMPLE_BUFFER.forEach((sample, i) => {
 			const x = xScaling * i + xOffset;
-			const y =
-				(maxHeight * (sample.value - dataStats.min)) /
-					(dataStats.max - dataStats.min) +
-				ctx.lineWidth;
 
-			// Skip drawing when the value hasn't changed.
-			// This avoids having awkward looking horizontal steps in the graph.
+			let y = GRAPH_CONTEXT.lineWidth;
+
+			if (sample.value !== 0) {
+				y =
+					(maxHeight * (sample.value - dataStats.min)) /
+						(dataStats.max - dataStats.min) +
+					GRAPH_CONTEXT.lineWidth;
+			}
+
 			if (y != previousY) {
-				ctx.lineTo(x, y);
+				GRAPH_CONTEXT.lineTo(x, y);
 			}
 
 			previousY = y;
 		});
 
-		ctx.stroke();
+		GRAPH_CONTEXT.stroke();
 	};
 
-	document.addEventListener("DOMContentLoaded", initialize);
+	return public;
 })();
