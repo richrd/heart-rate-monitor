@@ -4,6 +4,8 @@ A web based heart rate monitor that measures pulse from the fingertip using the 
 
 ### [Try the app here](https://heartrate.netlify.app)
 
+**NOTE:** Currently this only works on Chrome on Android. It doesn't work on iPhones, see issue [#1](https://github.com/richrd/heart-rate-monitor/issues/1)
+
 The latest stable version is hosted at [heartrate.netlify.app](https://heartrate.netlify.app)
 
 ![Heart Rate Monitor Screenshot](https://raw.githubusercontent.com/richrd/heart-rate-monitor/master/screenshots/screenshot-1.png)
