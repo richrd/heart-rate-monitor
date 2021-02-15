@@ -7,7 +7,8 @@
 	"author": "Richard Lewis",
 	"license": "MIT",
 	"scripts": {
-		"lint": "prettier --write src/*.html src/*.css src/*.js *.json *.md .prettierrc"
+		"lint": "prettier --write src/*.html src/*.css src/*.js *.json *.md .prettierrc",
+		"serve": "((mkdir ssl && cd ssl && openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout key.pem -out cert.pem) || echo 'SSL folder probably exists, continue...') && (npx http-server ./src -d false -S -C ssl/cert.pem -K ssl/key.pem)"
 	},
 	"devDependencies": {
 		"prettier": "^2.2.1"
