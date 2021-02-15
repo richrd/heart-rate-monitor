@@ -7,7 +7,7 @@
 	"author": "Richard Lewis",
 	"license": "MIT",
 	"scripts": {
-		"lint": "prettier --write src/*.html src/*.css src/*.js *.json *.md"
+		"lint": "prettier --write src/*.html src/*.css src/*.js *.json *.md .prettierrc"
 	},
 	"devDependencies": {
 		"prettier": "^2.2.1"
