@@ -51,6 +51,7 @@ const heartRateMonitor = (function () {
 	const log = (...args) => {
 		if (DEBUG) {
 			console.log(...args);
+			document.querySelector("#debug-log").innerHTML += args + "<br />";
 		}
 	};
 
