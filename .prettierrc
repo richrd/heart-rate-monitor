@@ -1,5 +1,5 @@
 {
 	"useTabs": true,
-    "tabWidth": 4,
-    "arrowParens": "always",
+	"tabWidth": 4,
+	"arrowParens": "always"
 }

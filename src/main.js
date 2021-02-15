@@ -1,3 +1,5 @@
+"use strict";
+
 const heartRateMonitor = (function () {
 	// Size of sampling image
 	const IMAGE_WIDTH = 30;
@@ -49,11 +51,12 @@ const heartRateMonitor = (function () {
 	const log = (...args) => {
 		if (DEBUG) {
 			console.log(...args);
+			document.querySelector("#debug-log").innerHTML += args + "<br />";
 		}
 	};
 
 	// Publicly available methods & variables
-	const public = {};
+	const publicMethods = {};
 
 	// Get an average brightness reading
 	const averageBrightness = (canvas, context) => {
@@ -78,7 +81,7 @@ const heartRateMonitor = (function () {
 		return avg / 255;
 	};
 
-	public.initialize = (configuration) => {
+	publicMethods.initialize = (configuration) => {
 		VIDEO_ELEMENT = configuration.videoElement;
 		SAMPLING_CANVAS = configuration.samplingCanvas;
 		GRAPH_CANVAS = configuration.graphCanvas;
@@ -113,7 +116,7 @@ const heartRateMonitor = (function () {
 		GRAPH_CANVAS.height = GRAPH_CANVAS.clientHeight;
 	};
 
-	public.toggleMonitoring = () => {
+	publicMethods.toggleMonitoring = () => {
 		MONITORING ? stopMonitoring() : startMonitoring();
 	};
 
@@ -350,5 +353,5 @@ const heartRateMonitor = (function () {
 		GRAPH_CONTEXT.stroke();
 	};
 
-	return public;
+	return publicMethods;
 })();
