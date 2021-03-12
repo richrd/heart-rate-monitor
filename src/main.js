@@ -104,6 +104,9 @@ const heartRateMonitor = (function () {
 
 		// Set the canvas size to its element size
 		handleResize();
+
+		// Avoid the video popping up as full screen (specifically on iPhone/iOS)
+		VIDEO_ELEMENT.setAttribute("playsinline", "");
 	};
 
 	const handleResize = () => {
