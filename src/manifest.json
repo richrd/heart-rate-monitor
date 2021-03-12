@@ -1,0 +1,15 @@
+{
+  "name": "Heart Rate Monitor",
+  "short_name": "Heart Rate Monitor",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff",
+  "description": "A heart rate monitor that uses the phone camera to measure your pulse.",
+  "icons": [
+    {
+      "src": "assets/icon512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
